@@ -66,7 +66,7 @@ Folder ends into the middle.
 
 ### Step 4
 
-Flip over and slide into hold.
+Flip over and slide into holder.
 
 ![Stand Up](./docs/20220626_231220.jpg)
 
