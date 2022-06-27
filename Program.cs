@@ -13,12 +13,12 @@ namespace Halfempty.Nametag
 
     interface ITemplate
     {
-        public void Generate(Dictionary<string, string> fields, FileStream output);
+        public void Generate(Dictionary<string, string> fields, bool borderless, FileStream output);
     }
 
     class FigmaTemplate : ITemplate
     {
-        public void Generate(Dictionary<string, string> fields, FileStream output)
+        public void Generate(Dictionary<string, string> fields, bool borderless, FileStream output)
         {
             var team = fields["Team"];
             var fullName = fields["FullName"];
@@ -36,8 +36,8 @@ namespace Halfempty.Nametag
             var page = builder.AddPage(PageSize.Letter);
             var printHeight = page.PageSize.Height / 4;
             var printWidth = page.PageSize.Width;
-            var printTop = new PdfPoint(0, printHeight);
-            var printBottom = PdfPoint.Origin;
+            var printTop = borderless ? new PdfPoint(0, printHeight) : new PdfPoint(0, printHeight*2);
+            var printBottom = borderless ? PdfPoint.Origin : new PdfPoint(0, printHeight);
 
             Background(page, printBottom, printWidth, printHeight);
 
@@ -45,7 +45,7 @@ namespace Halfempty.Nametag
             var teamHeight = CenteredText(page, team, 24, cabinFont, (indent, height) => printTop.Translate(indent, -1 * (height+3)));
             var tagLineHeight = CenteredText(page, tagline, 12, cabinFont, (indent, height) => printBottom.Translate(indent, height));
             
-            var edgeMargin = 12;
+            var edgeMargin = borderless ? 12 : 42;
             page.DrawRectangle(printBottom.Translate(edgeMargin, tagLineHeight + 14),
                 (decimal) (printWidth-edgeMargin*2),
                 (decimal) (printHeight - teamHeight - tagLineHeight - 27), 
@@ -59,7 +59,7 @@ namespace Halfempty.Nametag
             var hotpotIndent = 150;
             var imageDim = 50;
             var imageY = 30;
-            var hotpotPlacement = new PdfRectangle(printBottom.Translate(hotpotIndent, imageY), new PdfPoint(hotpotIndent+imageDim, imageY+imageDim));
+            var hotpotPlacement = new PdfRectangle(printBottom.Translate(hotpotIndent, imageY), new PdfPoint(hotpotIndent+imageDim, printBottom.Y+imageY+imageDim));
             page.AddPng(File.ReadAllBytes("images/v2_4.png"), hotpotPlacement);
 
             var scoreDim = 25;
@@ -69,13 +69,13 @@ namespace Halfempty.Nametag
             var chiliIndent = hotpotIndent + imageDim;
             for (int i = 0; i < hotpotScore; i++)
             {
-                var chiliPlacement = new PdfRectangle(printBottom.Translate(chiliIndent, scoreY), new PdfPoint(chiliIndent+scoreDim, scoreY+scoreDim));
+                var chiliPlacement = new PdfRectangle(printBottom.Translate(chiliIndent, scoreY), new PdfPoint(chiliIndent+scoreDim, printBottom.Y+scoreY+scoreDim));
                 page.AddPng(chiliPng, chiliPlacement);
                 chiliIndent += scoreDim + 3;
             }
             
             var bobaIndent = printWidth / 2 + 20;
-            var bobaPlacement = new PdfRectangle(printBottom.Translate(bobaIndent, imageY), new PdfPoint(bobaIndent+imageDim, imageY+imageDim));
+            var bobaPlacement = new PdfRectangle(printBottom.Translate(bobaIndent, imageY), new PdfPoint(bobaIndent+imageDim, printBottom.Y+imageY+imageDim));
             page.AddPng(File.ReadAllBytes("images/v2_14.png"), bobaPlacement);
 
             var icePng = File.ReadAllBytes("images/v2_16.png");
@@ -83,7 +83,7 @@ namespace Halfempty.Nametag
             var iceIndent = bobaIndent + imageDim;
             for (int i = 0; i < bobaScore; i++)
             {
-                var icePlacement = new PdfRectangle(printBottom.Translate(iceIndent, scoreY), new PdfPoint(iceIndent+scoreDim, scoreY+scoreDim));
+                var icePlacement = new PdfRectangle(printBottom.Translate(iceIndent, scoreY), new PdfPoint(iceIndent+scoreDim, printBottom.Y+scoreY+scoreDim));
                 page.AddPng(icePng, icePlacement);
                 iceIndent += scoreDim + 3;
             }
@@ -134,13 +134,16 @@ namespace Halfempty.Nametag
         public class GenerateOptions
         {
             [Option('v', "verbose", Required = false, HelpText = "Set output to verbose messages.")]
-            public bool Verbose {get; set;}
+            public bool Verbose { get; set; } = false;
+
+            [Option('b', "borderless", Required = false, HelpText = "Print an ideal borderless layout, only works with inkjet printers")]
+            public bool Borderless { get; set; } = false;
 
             [Option(shortName:'t', longName:"templateData", Required = true, HelpText = "Template fields pairs (FullName, Team, TagLine), e.g. Team=Account Identity")]
             public IEnumerable<string> TemplateFields { get; set; }
             
             [Option('o', "output", Required = false, HelpText = "File to save output to")]
-            public string? Output {get; set;}            
+            public string? Output {get; set;}
         }
 
         static void Main(string[] args)
@@ -151,8 +154,9 @@ namespace Halfempty.Nametag
                     var location = Path.Combine(Environment.CurrentDirectory, o.Output ?? "result.pdf");
                     var output = File.Create(location);
                     var fieldDictionary = o.TemplateFields.Select(t => t.Split('=')).ToDictionary(t => t[0], t => t[1]);
+                    
                     var generator = new FigmaTemplate();
-                    generator.Generate(fieldDictionary, output);
+                    generator.Generate(fieldDictionary, o.Borderless, output);
                 });
         }
     }
