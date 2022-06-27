@@ -10,6 +10,18 @@ using static System.String;
 
 namespace Halfempty.Nametag
 {
+    static class Logger
+    {
+        public static bool Verbose { get; set; }
+
+        public static void Info(string msg)
+        {
+            if (Verbose)
+            {
+                Console.WriteLine(msg);
+            }
+        }
+    }
 
     interface ITemplate
     {
@@ -95,13 +107,13 @@ namespace Halfempty.Nametag
                 using (output)
                 {
                     output.Write(fileBytes, 0, fileBytes.Length);
-                    Console.WriteLine(($"File output to: {output.Name}"));
+                    Logger.Info(($"File output to: {output.Name}"));
                     
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Failed to write output to file due to error: {ex}.");
+                Logger.Info($"Failed to write output to file due to error: {ex}.");
             }
 
         }
@@ -154,6 +166,8 @@ namespace Halfempty.Nametag
                     var location = Path.Combine(Environment.CurrentDirectory, o.Output ?? "result.pdf");
                     var output = File.Create(location);
                     var fieldDictionary = o.TemplateFields.Select(t => t.Split('=')).ToDictionary(t => t[0], t => t[1]);
+
+                    Logger.Verbose = o.Verbose;
                     
                     var generator = new FigmaTemplate();
                     generator.Generate(fieldDictionary, o.Borderless, output);
