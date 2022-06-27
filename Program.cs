@@ -1,14 +1,9 @@
-﻿using System.Diagnostics;
+﻿using System.CodeDom.Compiler;
+using System.Diagnostics;
 using CommandLine;
-using iText.Kernel.Pdf;
-using iText.Layout;
-using iText.Kernel.Geom;
-using iText.Layout.Element;
-using iText.Layout.Properties;
-using iText.Kernel.Pdf.Canvas;
-using iText.IO.Image;
-using iText.Kernel.Colors;
-using iText.Layout.Borders;
+using UglyToad.PdfPig.Content;
+using UglyToad.PdfPig.Core;
+using UglyToad.PdfPig.Writer;
 using static System.String;
 
 // See https://aka.ms/new-console-template for more information
@@ -27,137 +22,112 @@ namespace Halfempty.Nametag
         {
             var team = fields["Team"];
             var fullName = fields["FullName"];
-            string? tagline;
-            fields.TryGetValue("TagLine", out tagline);
-            
-            if(output == null || IsNullOrWhiteSpace(fullName) || IsNullOrWhiteSpace(team))
+            string tagline = fields.ContainsKey("TagLine") ? fields["TagLine"] : " ";
+
+            if (output == null || IsNullOrWhiteSpace(fullName) || IsNullOrWhiteSpace(team))
             {
                 throw new ArgumentNullException("Output was null");
             }
 
-            var background = new DeviceRgb(100, 126, 221);
-            
-            var writer = new PdfWriter(output);
-            var pdfDocument = new PdfDocument(writer);
-            var ps = PageSize.LETTER;
-            var page = pdfDocument.AddNewPage(ps);
-            var canvas = new PdfCanvas(page);
+            var builder = new PdfDocumentBuilder();
+            var cabinFont = builder.AddTrueTypeFont(File.ReadAllBytes("fonts/Cabin-Bold.ttf"));
+            var futuraFont = builder.AddTrueTypeFont(File.ReadAllBytes("fonts/Futura-Regular.ttf"));
 
-            Console.WriteLine("Generating file...");
+            var page = builder.AddPage(PageSize.Letter);
+            var printHeight = page.PageSize.Height / 4;
+            var printWidth = page.PageSize.Width;
+            var printTop = new PdfPoint(0, printHeight);
+            var printBottom = PdfPoint.Origin;
 
-            float fontSize = 40;
-            var height = ps.GetHeight() / 4;
-            var forImage = ps.GetWidth() / 4;
-            var forText = ps.GetWidth()-forImage;
-            
-            Paragraph teamParagraph = new Paragraph(team)
-                .SetMargin(1)
-                .SetMultipliedLeading(1)
-                .SetMarginTop(10)
-                .SetMarginBottom(10)
-                .SetFontSize(16)
-                .SetTextAlignment(TextAlignment.CENTER)
-                //.SetFontFamily("Cabin")
-                .SetFontColor(DeviceRgb.WHITE)
-                .SetMaxWidth(ps.GetWidth());
+            Background(page, printBottom, printWidth, printHeight);
 
-            Paragraph fullNameParagraph = new Paragraph(fullName)
-                .SetMargin(10)
-                .SetMultipliedLeading(1)
-                .SetFontSize( (int) (fontSize*.7))
-                .SetTextAlignment(TextAlignment.CENTER)
-                .SetMaxWidth(forText);
+            page.SetTextAndFillColor(255, 255, 255);
+            var teamHeight = CenteredText(page, team, 24, cabinFont, (indent, height) => printTop.Translate(indent, -1 * (height+3)));
+            var tagLineHeight = CenteredText(page, tagline, 12, cabinFont, (indent, height) => printBottom.Translate(indent, height));
             
-            var rect = new Rectangle(0, 0, ps.GetWidth(), height);
+            var edgeMargin = 12;
+            page.DrawRectangle(printBottom.Translate(edgeMargin, tagLineHeight + 14),
+                (decimal) (printWidth-edgeMargin*2),
+                (decimal) (printHeight - teamHeight - tagLineHeight - 27), 
+                1M, 
+                true);
+            // TBD Drop shadow
 
-            // Background coloring
-            canvas.SaveState();
-            canvas.SetFillColor(background);
-            canvas.Rectangle(0, 0, ps.GetWidth(), height);
-            canvas.Fill();
-            canvas.SetFillColor(DeviceRgb.WHITE);
-            var innerBorder = 15;
-            var innerBorderTop = 40;
-            canvas.Rectangle(innerBorder, innerBorderTop, ps.GetWidth()-innerBorder*2, height - innerBorderTop*2);
-            canvas.Fill();
-            canvas.RestoreState();
+            page.SetTextAndFillColor(0,0,0);
+            var fullNameHeight = CenteredText(page, fullName, 50, futuraFont, (indent, height) => printTop.Translate(indent, -1 * (teamHeight + 17 + height)));
+
+            var hotpotIndent = 150;
+            var imageDim = 50;
+            var imageY = 30;
+            var hotpotPlacement = new PdfRectangle(printBottom.Translate(hotpotIndent, imageY), new PdfPoint(hotpotIndent+imageDim, imageY+imageDim));
+            page.AddPng(File.ReadAllBytes("images/v2_4.png"), hotpotPlacement);
+
+            var scoreDim = 25;
+            var scoreY = imageY + 10;
+            var chiliPng = File.ReadAllBytes("images/v2_10.png");
+            var hotpotScore = int.Parse(fields.ContainsKey("HotPot") ? fields["HotPot"] : "3");
+            var chiliIndent = hotpotIndent + imageDim;
+            for (int i = 0; i < hotpotScore; i++)
+            {
+                var chiliPlacement = new PdfRectangle(printBottom.Translate(chiliIndent, scoreY), new PdfPoint(chiliIndent+scoreDim, scoreY+scoreDim));
+                page.AddPng(chiliPng, chiliPlacement);
+                chiliIndent += scoreDim + 3;
+            }
             
-            new Canvas(canvas, rect)
-                .Add(teamParagraph);
-            
-            canvas.Rectangle(rect);
-            
-            pdfDocument.Close();
+            var bobaIndent = printWidth / 2 + 20;
+            var bobaPlacement = new PdfRectangle(printBottom.Translate(bobaIndent, imageY), new PdfPoint(bobaIndent+imageDim, imageY+imageDim));
+            page.AddPng(File.ReadAllBytes("images/v2_14.png"), bobaPlacement);
+
+            var icePng = File.ReadAllBytes("images/v2_16.png");
+            var bobaScore = int.Parse(fields.ContainsKey("Boba") ? fields["Boba"] : "3");
+            var iceIndent = bobaIndent + imageDim;
+            for (int i = 0; i < bobaScore; i++)
+            {
+                var icePlacement = new PdfRectangle(printBottom.Translate(iceIndent, scoreY), new PdfPoint(iceIndent+scoreDim, scoreY+scoreDim));
+                page.AddPng(icePng, icePlacement);
+                iceIndent += scoreDim + 3;
+            }
+
+            var fileBytes = builder.Build();
+
+            try
+            {
+                using (output)
+                {
+                    output.Write(fileBytes, 0, fileBytes.Length);
+                    Console.WriteLine(($"File output to: {output.Name}"));
+                    
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to write output to file due to error: {ex}.");
+            }
 
         }
-    }
-    class Generator : ITemplate
-    {
-        public void Generate(Dictionary<string, string> fields, FileStream output)
+
+        private static double CenteredText(PdfPageBuilder page, string text, int fontSize, PdfDocumentBuilder.AddedFont font, Func<double, double, PdfPoint> positioning)  
         {
-            var fullName = fields["FullName"];
-            var title = fields["Title"];
-                
-            if(output == null || IsNullOrWhiteSpace(fullName) || IsNullOrWhiteSpace(title))
-            {
-                throw new ArgumentNullException("Output was null");
-            }
-
-            var writer = new PdfWriter(output);
-            var pdfDocument = new PdfDocument(writer);
-            var ps = PageSize.LETTER;
-            var page = pdfDocument.AddNewPage(ps);
-            var canvas = new PdfCanvas(page);
-
-            Console.WriteLine("Generating file...");
-
-            float fontSize = 40;
-            var height = ps.GetHeight() / 4;
-            var forImage = ps.GetWidth() / 4;
-            var forText = ps.GetWidth()-forImage;
-
-            var userId = 3622925419;
-            var avatar =
-                ImageDataFactory.Create(new Uri(
-                    $"https://www.roblox.com/headshot-thumbnail/image?userId={userId}&width=150&height=150&format=png"));
-            canvas.AddImageAt(avatar, 40, 40, true);
-            //canvas.AddImageWithTransformationMatrix(avatar, -1, 0, 0, -1, 15, 15);
+            var measureText = page.MeasureText(text, fontSize, PdfPoint.Origin, font);
+            var width = measureText.Max(letter => letter.Location.X);
             
-            Paragraph nameParagraph = new Paragraph(fullName)
-                .SetMargin(30)
-                .SetMultipliedLeading(1)
-                .SetFontSize(fontSize)
-                .SetTextAlignment(TextAlignment.CENTER)
-                .SetMaxWidth(forText);
+            var indent = (page.PageSize.Width - width) / 2;
+            var topOfText = measureText.Max(x => x.GlyphRectangle.Top);
+            var bottomOfText = measureText.Min(x => x.GlyphRectangle.Bottom);
+            var height = topOfText - bottomOfText;
+            var position = positioning(indent, height);
+            Console.WriteLine($"Positioning: {position}");
+            page.AddText(text, fontSize, position, font);
+            return height;
+        }
 
-            Paragraph titleParagraph = new Paragraph(title)
-                .SetMargin(10)
-                .SetMultipliedLeading(1)
-                .SetFontSize( (int) (fontSize*.7))
-                .SetTextAlignment(TextAlignment.CENTER)
-                .SetMaxWidth(forText);
-            
-            var rect = new Rectangle(forImage, 0, forText, height);
-            new Canvas(canvas, rect)
-                .Add(nameParagraph)
-                .Add(titleParagraph)
-                .SetBorder(Border.NO_BORDER);
-            
-            canvas.Rectangle(rect);
-            
-            nameParagraph.SetRotationAngle(Math.PI);
-            titleParagraph.SetRotationAngle(Math.PI);
-            var rect2 = new Rectangle(0, height, forText, height);
-            new Canvas(canvas, rect2)
-                .Add(titleParagraph)
-                .Add(nameParagraph)
-                .SetBorder(Border.NO_BORDER);
-            canvas.Rectangle(rect);
-            
-            pdfDocument.Close();
-
+        private static void Background(PdfPageBuilder page, PdfPoint printBottom, double printWidth, double printHeight)
+        {
+            page.SetTextAndFillColor(100, 126, 221);
+            page.DrawRectangle(printBottom, (decimal)printWidth, (decimal)printHeight, 1M, true);
         }
     }
+ 
     class Program
     {
 
@@ -178,7 +148,8 @@ namespace Halfempty.Nametag
             var result = Parser.Default.ParseArguments<GenerateOptions>(args)
                 .WithParsed<GenerateOptions>( o =>
                 {
-                    FileStream output = new FileStream(o.Output ?? "result.pdf", FileMode.Create);
+                    var location = Path.Combine(Environment.CurrentDirectory, o.Output ?? "result.pdf");
+                    var output = File.Create(location);
                     var fieldDictionary = o.TemplateFields.Select(t => t.Split('=')).ToDictionary(t => t[0], t => t[1]);
                     var generator = new FigmaTemplate();
                     generator.Generate(fieldDictionary, output);
