@@ -128,7 +128,7 @@ namespace Halfempty.Nametag
             var bottomOfText = measureText.Min(x => x.GlyphRectangle.Bottom);
             var height = topOfText - bottomOfText;
             var position = positioning(indent, height);
-            Console.WriteLine($"Positioning: {position}");
+            Logger.Info($"Positioning: {position}");
             page.AddText(text, fontSize, position, font);
             return height;
         }
