@@ -5,7 +5,7 @@ These can be found on Amazon, and are economically bought in a bundle of to buy 
 They can accept a folder 8.5"x11" sheet of paper, the trick is printing in the exact region that will be seen once folded.
 This project aims to simplify layout to match the holder, with some adjustability so that it can be customized for different people. 
 
-<a href="https://www.amazon.com/gp/product/B09KXXPRRM?ie=UTF8&psc=1&linkCode=li2&tag=halfemptyorg-20&linkId=da70184524b672c4dd7aa3dda967b103&language=en_US&ref_=as_li_ss_il" target="_blank"><img border="0" src="//ws-na.amazon-adsystem.com/widgets/q?_encoding=UTF8&ASIN=B09KXXPRRM&Format=_SL160_&ID=AsinImage&MarketPlace=US&ServiceVersion=20070822&WS=1&tag=halfemptyorg-20&language=en_US" ></a><img src="https://ir-na.amazon-adsystem.com/e/ir?t=halfemptyorg-20&language=en_US&l=li2&o=1&a=B09KXXPRRM" width="1" height="1" border="0" alt="" style="border:none !important; margin:0px !important;" />
+[![Nameplace on Amazon](https://ws-na.amazon-adsystem.com/widgets/q?_encoding=UTF8&ASIN=B09KXXPRRM&Format=_SL160_&ID=AsinImage&MarketPlace=US&ServiceVersion=20070822&WS=1&tag=halfemptyorg-20&language=en_US)](https://www.amazon.com/gp/product/B09KXXPRRM?ie=UTF8&psc=1&linkCode=li2&tag=halfemptyorg-20&linkId=da70184524b672c4dd7aa3dda967b103&language=en_US&ref_=as_li_ss_il)
 
 ## Running
 
