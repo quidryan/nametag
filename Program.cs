@@ -170,17 +170,17 @@ namespace Halfempty.Nametag
 
         private static double RenderWrappedText(PdfPageBuilder page, List<string> lines, int fontSize, PdfDocumentBuilder.AddedFont font, double areaLeft, double areaWidth, double contentTop, double contentBottom)
         {
-            // Calculate total height of all lines
+            // Calculate total height and store ascender heights for each line
             double totalHeight = 0;
-            var lineHeights = new List<double>();
+            var lineMetrics = new List<(double ascender, double descender, double height)>();
             foreach (var line in lines)
             {
                 var measured = page.MeasureText(line, fontSize, PdfPoint.Origin, font);
-                var top = measured.Any() ? measured.Max(x => x.GlyphRectangle.Top) : fontSize;
-                var bottom = measured.Any() ? measured.Min(x => x.GlyphRectangle.Bottom) : 0;
-                var lineHeight = top - bottom;
-                lineHeights.Add(lineHeight);
-                totalHeight += lineHeight;
+                var ascender = measured.Any() ? measured.Max(x => x.GlyphRectangle.Top) : fontSize;
+                var descender = measured.Any() ? Math.Abs(measured.Min(x => x.GlyphRectangle.Bottom)) : 0;
+                var height = ascender + descender;
+                lineMetrics.Add((ascender, descender, height));
+                totalHeight += height;
             }
             totalHeight += (lines.Count - 1) * LineSpacing;
 
@@ -197,10 +197,12 @@ namespace Halfempty.Nametag
                 var lineWidth = measured.Any() ? measured.Max(letter => letter.Location.X) : 0;
                 var lineX = areaLeft + (areaWidth - lineWidth) / 2;
                 
-                currentY -= lineHeights[i];
+                // Subtract only the ascender to position baseline correctly
+                currentY -= lineMetrics[i].ascender;
                 page.AddText(line, fontSize, new PdfPoint(lineX, currentY), font);
                 Logger.Info($"Rendered line '{line}' at ({lineX}, {currentY})");
-                currentY -= LineSpacing;
+                // Subtract descender + spacing to get to next line's start
+                currentY -= lineMetrics[i].descender + LineSpacing;
             }
 
             return totalHeight;
