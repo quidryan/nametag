@@ -94,7 +94,9 @@ namespace Halfempty.Nametag
                 page.SetTextAndFillColor(0, 0, 0);
                 var usernameMeasured = page.MeasureText(username, UsernameFontSize, PdfPoint.Origin, cabinFont);
                 var usernameWidth = usernameMeasured.Any() ? usernameMeasured.Max(letter => letter.Location.X) : 0;
-                var usernameX = imageX + (ImageSize - usernameWidth) / 2;
+                // Center under image, but clamp to not go left of edge margin
+                var imageCenterX = imageX + ImageSize / 2;
+                var usernameX = Math.Max(edgeMargin, imageCenterX - usernameWidth / 2);
                 var usernameY = imageY - UsernameTopPadding - UsernameFontSize;
                 page.AddText(username, UsernameFontSize, new PdfPoint(usernameX, usernameY), cabinFont);
                 Logger.Info($"Rendered username '{username}' at ({usernameX}, {usernameY})");
@@ -198,9 +200,11 @@ namespace Halfempty.Nametag
             }
             totalHeight += (lines.Count - 1) * LineSpacing;
 
-            // Center vertically in content area
+            // Center vertically in content area, but clamp to not exceed contentTop
             var contentHeight = contentTop - contentBottom;
-            var startY = contentTop - (contentHeight - totalHeight) / 2;
+            var startY = totalHeight >= contentHeight 
+                ? contentTop  // If text is taller than area, start at top
+                : contentTop - (contentHeight - totalHeight) / 2;
 
             // Render each line centered horizontally in name area
             var currentY = startY;
