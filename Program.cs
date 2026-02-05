@@ -1,4 +1,4 @@
-﻿using System.CodeDom.Compiler;
+using System.CodeDom.Compiler;
 using System.Diagnostics;
 using CommandLine;
 using UglyToad.PdfPig.Content;
@@ -102,18 +102,10 @@ namespace Halfempty.Nametag
 
             var fileBytes = builder.Build();
 
-            try
+            using (output)
             {
-                using (output)
-                {
-                    output.Write(fileBytes, 0, fileBytes.Length);
-                    Logger.Info(($"File output to: {output.Name}"));
-                    
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Info($"Failed to write output to file due to error: {ex}.");
+                output.Write(fileBytes, 0, fileBytes.Length);
+                Logger.Info($"File output to: {output.Name}");
             }
 
         }
