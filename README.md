@@ -5,7 +5,7 @@ These can be found on Amazon, and are economically bought in a bundle of to buy 
 They can accept a folder 8.5"x11" sheet of paper, the trick is printing in the exact region that will be seen once folded.
 This project aims to simplify layout to match the holder, with some adjustability so that it can be customized for different people. 
 
-[![Nameplace on Amazon](https://ws-na.amazon-adsystem.com/widgets/q?_encoding=UTF8&ASIN=B09KXXPRRM&Format=_SL160_&ID=AsinImage&MarketPlace=US&ServiceVersion=20070822&WS=1&tag=halfemptyorg-20&language=en_US)](https://www.amazon.com/gp/product/B09KXXPRRM?ie=UTF8&psc=1&linkCode=li2&tag=halfemptyorg-20&linkId=da70184524b672c4dd7aa3dda967b103&language=en_US&ref_=as_li_ss_il)
+[![Nameplate on Amazon](https://ws-na.amazon-adsystem.com/widgets/q?_encoding=UTF8&ASIN=B09KXXPRRM&Format=_SL160_&ID=AsinImage&MarketPlace=US&ServiceVersion=20070822&WS=1&tag=halfemptyorg-20&language=en_US)](https://www.amazon.com/gp/product/B09KXXPRRM?ie=UTF8&psc=1&linkCode=li2&tag=halfemptyorg-20&linkId=da70184524b672c4dd7aa3dda967b103&language=en_US&ref_=as_li_ss_il)
 
 ## Running
 
@@ -21,7 +21,7 @@ The above will output to result.pdf
 Here's an example with all the features in place:
 
 ```shell
-dotnet run --verbose --output JustinNametag.pdf --name "Justin Ryan" --team "Accounts > AuthSec > Auth Usability" --image "justin.png" --quote "Owls are the best"
+dotnet run --verbose --output JustinNametag.pdf --name "Justin Ryan" --team "Accounts > AuthSec > Auth Usability" --image "justin.png" --quote "Owls are the best" --username "OwlMaster99"
 ```
 
 ### Arguments
@@ -32,6 +32,7 @@ dotnet run --verbose --output JustinNametag.pdf --name "Justin Ryan" --team "Acc
 | -t, --team       | Yes      | Team name shown in the header                                     |
 | -i, --image      | Yes      | Path to personalized PNG image (displayed left of name)           |
 | -q, --quote      | Yes      | Funny quote displayed at the bottom                               |
+| -u, --username   | No       | Roblox display name, shown centered under the image               |
 | -v, --verbose    | No       | Set output to verbose messages                                    |
 | -b, --borderless | No       | Print an ideal borderless layout, only works with inkjet printers |
 | -o, --output     | No       | File to save output to, defaults to result.pdf                    |
@@ -94,5 +95,6 @@ The nametag layout consists of:
 
 - **Team**: Displayed in the blue header at the top
 - **Image**: Personalized PNG image on the left side of the content area (80x80 points)
+- **Username**: Optional Roblox display name, centered under the image
 - **Name**: Displayed to the right of the image, automatically wraps to multiple lines if too long
 - **Quote**: Displayed in the blue footer at the bottom

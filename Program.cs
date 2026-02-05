@@ -23,7 +23,7 @@ namespace Halfempty.Nametag
 
     interface ITemplate
     {
-        public void Generate(string name, string team, string imagePath, string quote, bool borderless, FileStream output);
+        public void Generate(string name, string team, string imagePath, string quote, string? username, bool borderless, FileStream output);
     }
 
     public class NametagTemplate : ITemplate
@@ -41,8 +41,10 @@ namespace Halfempty.Nametag
         private const int ContentTopPadding = 17;
         private const int ContentBottomPadding = 14;
         private const int LineSpacing = 5;
+        private const int UsernameFontSize = 12;
+        private const int UsernameTopPadding = 0;
 
-        public void Generate(string name, string team, string imagePath, string quote, bool borderless, FileStream output)
+        public void Generate(string name, string team, string imagePath, string quote, string? username, bool borderless, FileStream output)
         {
             if (output == null || IsNullOrWhiteSpace(name) || IsNullOrWhiteSpace(team) || IsNullOrWhiteSpace(imagePath) || IsNullOrWhiteSpace(quote))
             {
@@ -85,6 +87,18 @@ namespace Halfempty.Nametag
                 new PdfPoint(imageX, imageY),
                 new PdfPoint(imageX + ImageSize, imageY + ImageSize));
             page.AddPng(imageBytes, imagePlacement);
+
+            // Draw username under image if provided (black text, centered under image)
+            if (!IsNullOrWhiteSpace(username))
+            {
+                page.SetTextAndFillColor(0, 0, 0);
+                var usernameMeasured = page.MeasureText(username, UsernameFontSize, PdfPoint.Origin, cabinFont);
+                var usernameWidth = usernameMeasured.Any() ? usernameMeasured.Max(letter => letter.Location.X) : 0;
+                var usernameX = imageX + (ImageSize - usernameWidth) / 2;
+                var usernameY = imageY - UsernameTopPadding - UsernameFontSize;
+                page.AddText(username, UsernameFontSize, new PdfPoint(usernameX, usernameY), cabinFont);
+                Logger.Info($"Rendered username '{username}' at ({usernameX}, {usernameY})");
+            }
 
             // Calculate available width for name (to the right of the image)
             var nameAreaLeft = imageX + ImageSize + ImagePadding;
@@ -231,6 +245,9 @@ namespace Halfempty.Nametag
 
             [Option('q', "quote", Required = true, HelpText = "Funny quote for the bottom")]
             public string Quote { get; set; } = "";
+
+            [Option('u', "username", Required = false, HelpText = "Optional Roblox display name, shown under the image")]
+            public string? Username { get; set; }
             
             [Option('o', "output", Required = false, HelpText = "File to save output to")]
             public string? Output { get; set; }
@@ -247,7 +264,7 @@ namespace Halfempty.Nametag
                     var output = File.Create(location);
                     
                     var generator = new NametagTemplate();
-                    generator.Generate(o.Name, o.Team, o.Image, o.Quote, o.Borderless, output);
+                    generator.Generate(o.Name, o.Team, o.Image, o.Quote, o.Username, o.Borderless, output);
                 });
         }
     }

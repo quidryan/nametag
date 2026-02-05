@@ -83,10 +83,83 @@ public class PdfGenerationTests
         }
     }
 
-    private static int RunNametagGenerator(string name, string team, string imagePath, string quote, string outputPath)
+    [Fact]
+    public void Generate_WithUsername_CreatesPdfFile()
+    {
+        // Arrange
+        var outputPath = Path.Combine(Path.GetTempPath(), $"test_nametag_{Guid.NewGuid()}.pdf");
+        var testImagePath = Path.Combine(GetProjectRoot(), "images", "v2_4.png");
+        
+        try
+        {
+            // Act - include optional username
+            var exitCode = RunNametagGenerator(
+                name: "Test Person",
+                team: "Test Team",
+                imagePath: testImagePath,
+                quote: "Test quote",
+                outputPath: outputPath,
+                username: "CoolPlayer123"
+            );
+
+            // Assert
+            Assert.Equal(0, exitCode);
+            Assert.True(File.Exists(outputPath), "Output PDF should exist");
+            
+            var fileInfo = new FileInfo(outputPath);
+            Assert.True(fileInfo.Length > 1024, "PDF should be larger than 1KB");
+        }
+        finally
+        {
+            // Cleanup
+            if (File.Exists(outputPath))
+            {
+                File.Delete(outputPath);
+            }
+        }
+    }
+
+    [Fact]
+    public void Generate_WithoutUsername_CreatesPdfFile()
+    {
+        // Arrange
+        var outputPath = Path.Combine(Path.GetTempPath(), $"test_nametag_{Guid.NewGuid()}.pdf");
+        var testImagePath = Path.Combine(GetProjectRoot(), "images", "v2_4.png");
+        
+        try
+        {
+            // Act - explicitly omit username to verify it's optional
+            var exitCode = RunNametagGenerator(
+                name: "Test Person",
+                team: "Test Team",
+                imagePath: testImagePath,
+                quote: "Test quote",
+                outputPath: outputPath,
+                username: null  // explicitly null
+            );
+
+            // Assert
+            Assert.Equal(0, exitCode);
+            Assert.True(File.Exists(outputPath), "Output PDF should exist");
+            
+            var fileInfo = new FileInfo(outputPath);
+            Assert.True(fileInfo.Length > 1024, "PDF should be larger than 1KB");
+        }
+        finally
+        {
+            // Cleanup
+            if (File.Exists(outputPath))
+            {
+                File.Delete(outputPath);
+            }
+        }
+    }
+
+    private static int RunNametagGenerator(string name, string team, string imagePath, string quote, string outputPath, string? username = null)
     {
         var projectRoot = GetProjectRoot();
         
+        var usernameArg = username != null ? $"--username \"{username}\" " : "";
         var psi = new ProcessStartInfo
         {
             FileName = "dotnet",
@@ -95,6 +168,7 @@ public class PdfGenerationTests
                         $"--team \"{team}\" " +
                         $"--image \"{imagePath}\" " +
                         $"--quote \"{quote}\" " +
+                        usernameArg +
                         $"--output \"{outputPath}\"",
             WorkingDirectory = projectRoot,
             RedirectStandardOutput = true,
