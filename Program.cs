@@ -37,9 +37,8 @@ namespace Halfempty.Nametag
         private const int ImagePadding = 20;
         private const int BorderlessMargin = 12;
         private const int BorderedMargin = 42;
-        private const int HeaderPadding = 3;
-        private const int ContentTopPadding = 17;
-        private const int ContentBottomPadding = 14;
+        private const int HeaderHeight = 35;
+        private const int FooterHeight = 22;
         private const int LineSpacing = 5;
         private const int UsernameFontSize = 12;
         private const int UsernameTopPadding = 0;
@@ -63,17 +62,17 @@ namespace Halfempty.Nametag
 
             Background(page, printBottom, printWidth, printHeight);
 
-            // Draw team header (white text on blue)
-            page.SetTextAndFillColor(255, 255, 255);
-            var teamHeight = CenteredText(page, team, TeamFontSize, cabinFont, (indent, height) => printTop.Translate(indent, -1 * (height + HeaderPadding)));
-            var quoteHeight = CenteredText(page, quote, QuoteFontSize, cabinFont, (indent, height) => printBottom.Translate(indent, height));
-            
-            // Draw white content area
+            // Calculate content area bounds based on fixed header/footer heights
             var edgeMargin = borderless ? BorderlessMargin : BorderedMargin;
-            var contentTop = printTop.Y - teamHeight - ContentTopPadding;
-            var contentBottom = printBottom.Y + quoteHeight + ContentBottomPadding;
+            var contentTop = printTop.Y - HeaderHeight;
+            var contentBottom = printBottom.Y + FooterHeight;
             var contentHeight = contentTop - contentBottom;
-            page.DrawRectangle(printBottom.Translate(edgeMargin, quoteHeight + ContentBottomPadding),
+            
+            // Draw team header (white text on blue, centered in header region)
+            page.SetTextAndFillColor(255, 255, 255);
+            CenteredTextInRegion(page, team, TeamFontSize, cabinFont, contentTop, printTop.Y);
+            CenteredTextInRegion(page, quote, QuoteFontSize, cabinFont, printBottom.Y, contentBottom);
+            page.DrawRectangle(printBottom.Translate(edgeMargin, FooterHeight),
                 (decimal)(printWidth - edgeMargin * 2),
                 (decimal)contentHeight, 
                 1M, 
@@ -122,19 +121,39 @@ namespace Halfempty.Nametag
 
         }
 
-        private static double CenteredText(PdfPageBuilder page, string text, int fontSize, PdfDocumentBuilder.AddedFont font, Func<double, double, PdfPoint> positioning)  
+        /// <summary>
+        /// Centers text both horizontally on the page and vertically within a region.
+        /// </summary>
+        private static void CenteredTextInRegion(PdfPageBuilder page, string text, int fontSize, PdfDocumentBuilder.AddedFont font, double regionBottom, double regionTop)  
         {
             var measureText = page.MeasureText(text, fontSize, PdfPoint.Origin, font);
             var width = measureText.Max(letter => letter.Location.X);
-            
             var indent = (page.PageSize.Width - width) / 2;
-            var topOfText = measureText.Max(x => x.GlyphRectangle.Top);
-            var bottomOfText = measureText.Min(x => x.GlyphRectangle.Bottom);
-            var height = topOfText - bottomOfText;
-            var position = positioning(indent, height);
-            Logger.Info($"Positioning: {position}");
+            
+            // Get the visual bounds of the text
+            // GlyphRectangle gives absolute coordinates when measured at Origin
+            var glyphTop = measureText.Max(x => x.GlyphRectangle.Top);
+            var glyphBottom = measureText.Min(x => x.GlyphRectangle.Bottom);
+            var glyphHeight = glyphTop - glyphBottom;
+            
+            // The baseline was at Y=0 when we measured, so:
+            // - glyphTop is the ascender height above baseline
+            // - glyphBottom is the descender depth (negative if below baseline)
+            
+            // To center the visual extent of the text in the region:
+            // We want: (glyphBottom + baselineY) and (glyphTop + baselineY) centered in [regionBottom, regionTop]
+            // Center of glyph extent = baselineY + (glyphTop + glyphBottom) / 2
+            // This should equal: (regionTop + regionBottom) / 2
+            var regionCenterY = (regionTop + regionBottom) / 2;
+            var glyphCenterOffset = (glyphTop + glyphBottom) / 2;
+            var baselineY = regionCenterY - glyphCenterOffset;
+            
+            Logger.Info($"CenteredTextInRegion: '{text}' fontSize={fontSize}");
+            Logger.Info($"  glyphTop={glyphTop:F2}, glyphBottom={glyphBottom:F2}, height={glyphHeight:F2}");
+            Logger.Info($"  regionCenter={regionCenterY:F2}, glyphCenterOffset={glyphCenterOffset:F2}, baselineY={baselineY:F2}");
+            
+            var position = new PdfPoint(indent, baselineY);
             page.AddText(text, fontSize, position, font);
-            return height;
         }
 
         private static void Background(PdfPageBuilder page, PdfPoint printBottom, double printWidth, double printHeight)
