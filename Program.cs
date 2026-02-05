@@ -26,7 +26,7 @@ namespace Halfempty.Nametag
         public void Generate(string name, string team, string imagePath, string quote, bool borderless, FileStream output);
     }
 
-    class FigmaTemplate : ITemplate
+    public class NametagTemplate : ITemplate
     {
         // Layout constants
         private const int TeamFontSize = 24;
@@ -129,6 +129,22 @@ namespace Halfempty.Nametag
 
         private static List<string> WrapText(PdfPageBuilder page, string text, int fontSize, PdfDocumentBuilder.AddedFont font, double maxWidth)
         {
+            return WrapText(text, maxWidth, testLine =>
+            {
+                var measured = page.MeasureText(testLine, fontSize, PdfPoint.Origin, font);
+                return measured.Any() ? measured.Max(letter => letter.Location.X) : 0;
+            });
+        }
+
+        /// <summary>
+        /// Wraps text into multiple lines based on a maximum width.
+        /// </summary>
+        /// <param name="text">The text to wrap</param>
+        /// <param name="maxWidth">Maximum width for each line</param>
+        /// <param name="measureText">Function that measures the width of a string</param>
+        /// <returns>List of lines</returns>
+        public static List<string> WrapText(string text, double maxWidth, Func<string, double> measureText)
+        {
             var words = text.Split(' ');
             var lines = new List<string>();
             var currentLine = "";
@@ -136,8 +152,7 @@ namespace Halfempty.Nametag
             foreach (var word in words)
             {
                 var testLine = currentLine.Length == 0 ? word : currentLine + " " + word;
-                var measured = page.MeasureText(testLine, fontSize, PdfPoint.Origin, font);
-                var width = measured.Any() ? measured.Max(letter => letter.Location.X) : 0;
+                var width = measureText(testLine);
 
                 if (width > maxWidth && currentLine.Length > 0)
                 {
@@ -229,7 +244,7 @@ namespace Halfempty.Nametag
                     Logger.Verbose = o.Verbose;
                     var output = File.Create(location);
                     
-                    var generator = new FigmaTemplate();
+                    var generator = new NametagTemplate();
                     generator.Generate(o.Name, o.Team, o.Image, o.Quote, o.Borderless, output);
                 });
         }

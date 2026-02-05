@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "jryan-nametag", "jryan-nametag.csproj", "{D0E2E6C0-EDC2-4329-A84D-2385DC42FC5D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{908F8148-9D1C-491A-A67A-84D14405CF6E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D0E2E6C0-EDC2-4329-A84D-2385DC42FC5D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D0E2E6C0-EDC2-4329-A84D-2385DC42FC5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D0E2E6C0-EDC2-4329-A84D-2385DC42FC5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D0E2E6C0-EDC2-4329-A84D-2385DC42FC5D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{908F8148-9D1C-491A-A67A-84D14405CF6E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{908F8148-9D1C-491A-A67A-84D14405CF6E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{908F8148-9D1C-491A-A67A-84D14405CF6E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{908F8148-9D1C-491A-A67A-84D14405CF6E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
