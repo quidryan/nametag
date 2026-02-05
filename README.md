@@ -13,29 +13,30 @@ The project is written in .Net and most easily by running the `dotnet` command.
 
 ### Examples
 ```shell
-dotnet run --templateData "FullName=My Name" "Team=Best Team Ever"
+dotnet run --name "My Name" --team "Best Team Ever" --image "avatar.png" --quote "Hello World"
 ```
 
 The above will output to result.pdf
 
-Here's and example with all the features in place:
+Here's an example with all the features in place:
 
 ```shell
-dotnet run --verbose --output JustinNametag.pdf --templateData "FullName=Justin Ryan" "Team=Account Identity" "TagLine=Owls are the best" "HotPot=3" "Boba=1"
+dotnet run --verbose --output JustinNametag.pdf --name "Justin Ryan" --team "Accounts > AuthSec > Auth Usability" --image "justin.png" --quote "Owls are the best"
 ```
 
 ### Arguments
 
-| Argument           | Required | Description                                                       |
-|--------------------|----------|-------------------------------------------------------------------|
-| -v, --verbose      | No       | Set output to verbose messages.                                   |
-| -b, --borderless   | No       | Print an ideal borderless layout, only works with inkjet printers |
-| -t, --templateData | Yes      | Template fields pairs, See below for valid values                 |
-| -o, --output       | No       | File to save output to, defaults to result.pdf                    |
-| --help             | No       | Display this help screen.                                         |
-| --version          | No       | Display version information.                                      |
-
-The `templateData` argument drives the template, of which there is currently only one. Refer to Figma template below.
+| Argument         | Required | Description                                                       |
+|------------------|----------|-------------------------------------------------------------------|
+| -n, --name       | Yes      | The person's full name (supports text wrapping for long names)    |
+| -t, --team       | Yes      | Team name shown in the header                                     |
+| -i, --image      | Yes      | Path to personalized PNG image (displayed left of name)           |
+| -q, --quote      | Yes      | Funny quote displayed at the bottom                               |
+| -v, --verbose    | No       | Set output to verbose messages                                    |
+| -b, --borderless | No       | Print an ideal borderless layout, only works with inkjet printers |
+| -o, --output     | No       | File to save output to, defaults to result.pdf                    |
+| --help           | No       | Display this help screen                                          |
+| --version        | No       | Display version information                                       |
 
 ## Printing
 
@@ -73,21 +74,25 @@ Flip over and slide into holder.
 ### Borderless
 
 To folder from a borderless mode, fold the paper in half, twice.
-## Templates
+## Layout
 
-### Figma
+The nametag layout consists of:
 
-This template takes these arguments:
+```
++--------------------------------------------------+
+|              Team Name (header)                  |  <- Blue background
++--------------------------------------------------+
+|                                                  |
+|    +-------+                                     |
+|    | IMAGE |    Full Name Here                   |  <- White content area
+|    +-------+    (wraps if long)                  |
+|                                                  |
++--------------------------------------------------+
+|              "Funny quote here"                  |  <- Blue background
++--------------------------------------------------+
+```
 
-| Argument | Meaning                                              | Required/Default |
-|----------|------------------------------------------------------|------------------|
-| FullName | Main name that will take up the most space           | Yes              |
-| Team     | Subheading shown along the top                       | Yes              |
-| TagLine  | Small heading                                        | No               |
-| HotPot   | How spicy do you like your hotpot? On a level of 1-3 | No, 3            |
-| Boba     | What ice level do you like in your Boba? 1-3         | No, 3            |
-
-## TODO
-
-* Dynamic layout for Hot Pot and Boba, so it can handle more spiciness
-* Support different images
+- **Team**: Displayed in the blue header at the top
+- **Image**: Personalized PNG image on the left side of the content area (80x80 points)
+- **Name**: Displayed to the right of the image, automatically wraps to multiple lines if too long
+- **Quote**: Displayed in the blue footer at the bottom

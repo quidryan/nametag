@@ -1,5 +1,3 @@
-using System.CodeDom.Compiler;
-using System.Diagnostics;
 using CommandLine;
 using UglyToad.PdfPig.Content;
 using UglyToad.PdfPig.Core;
@@ -25,20 +23,30 @@ namespace Halfempty.Nametag
 
     interface ITemplate
     {
-        public void Generate(Dictionary<string, string> fields, bool borderless, FileStream output);
+        public void Generate(string name, string team, string imagePath, string quote, bool borderless, FileStream output);
     }
 
     class FigmaTemplate : ITemplate
     {
-        public void Generate(Dictionary<string, string> fields, bool borderless, FileStream output)
-        {
-            var team = fields["Team"];
-            var fullName = fields["FullName"];
-            string tagline = fields.ContainsKey("TagLine") ? fields["TagLine"] : " ";
+        // Layout constants
+        private const int TeamFontSize = 24;
+        private const int NameFontSize = 50;
+        private const int QuoteFontSize = 12;
+        private const int ImageSize = 80;
+        private const int ContentMargin = 40;
+        private const int ImagePadding = 20;
+        private const int BorderlessMargin = 12;
+        private const int BorderedMargin = 42;
+        private const int HeaderPadding = 3;
+        private const int ContentTopPadding = 17;
+        private const int ContentBottomPadding = 14;
+        private const int LineSpacing = 5;
 
-            if (output == null || IsNullOrWhiteSpace(fullName) || IsNullOrWhiteSpace(team))
+        public void Generate(string name, string team, string imagePath, string quote, bool borderless, FileStream output)
+        {
+            if (output == null || IsNullOrWhiteSpace(name) || IsNullOrWhiteSpace(team) || IsNullOrWhiteSpace(imagePath) || IsNullOrWhiteSpace(quote))
             {
-                throw new ArgumentNullException("Output was null");
+                throw new ArgumentException("All parameters (name, team, imagePath, quote) are required");
             }
 
             var builder = new PdfDocumentBuilder();
@@ -53,52 +61,40 @@ namespace Halfempty.Nametag
 
             Background(page, printBottom, printWidth, printHeight);
 
+            // Draw team header (white text on blue)
             page.SetTextAndFillColor(255, 255, 255);
-            var teamHeight = CenteredText(page, team, 24, cabinFont, (indent, height) => printTop.Translate(indent, -1 * (height+3)));
-            var tagLineHeight = CenteredText(page, tagline, 12, cabinFont, (indent, height) => printBottom.Translate(indent, height));
+            var teamHeight = CenteredText(page, team, TeamFontSize, cabinFont, (indent, height) => printTop.Translate(indent, -1 * (height + HeaderPadding)));
+            var quoteHeight = CenteredText(page, quote, QuoteFontSize, cabinFont, (indent, height) => printBottom.Translate(indent, height));
             
-            var edgeMargin = borderless ? 12 : 42;
-            page.DrawRectangle(printBottom.Translate(edgeMargin, tagLineHeight + 14),
-                (decimal) (printWidth-edgeMargin*2),
-                (decimal) (printHeight - teamHeight - tagLineHeight - 27), 
+            // Draw white content area
+            var edgeMargin = borderless ? BorderlessMargin : BorderedMargin;
+            var contentTop = printTop.Y - teamHeight - ContentTopPadding;
+            var contentBottom = printBottom.Y + quoteHeight + ContentBottomPadding;
+            var contentHeight = contentTop - contentBottom;
+            page.DrawRectangle(printBottom.Translate(edgeMargin, quoteHeight + ContentBottomPadding),
+                (decimal)(printWidth - edgeMargin * 2),
+                (decimal)contentHeight, 
                 1M, 
                 true);
-            // TBD Drop shadow
 
-            page.SetTextAndFillColor(0,0,0);
-            var fullNameHeight = CenteredText(page, fullName, 50, futuraFont, (indent, height) => printTop.Translate(indent, -1 * (teamHeight + 17 + height)));
+            // Draw personalized image (left side of content area)
+            var imageBytes = File.ReadAllBytes(imagePath);
+            var imageX = edgeMargin + ContentMargin;
+            var imageY = contentBottom + (contentHeight - ImageSize) / 2;
+            var imagePlacement = new PdfRectangle(
+                new PdfPoint(imageX, imageY),
+                new PdfPoint(imageX + ImageSize, imageY + ImageSize));
+            page.AddPng(imageBytes, imagePlacement);
 
-            var hotpotIndent = 150;
-            var imageDim = 50;
-            var imageY = 30;
-            var hotpotPlacement = new PdfRectangle(printBottom.Translate(hotpotIndent, imageY), new PdfPoint(hotpotIndent+imageDim, printBottom.Y+imageY+imageDim));
-            page.AddPng(File.ReadAllBytes("images/v2_4.png"), hotpotPlacement);
+            // Calculate available width for name (to the right of the image)
+            var nameAreaLeft = imageX + ImageSize + ImagePadding;
+            var nameAreaRight = printWidth - edgeMargin - ContentMargin;
+            var nameAreaWidth = nameAreaRight - nameAreaLeft;
 
-            var scoreDim = 25;
-            var scoreY = imageY + 10;
-            var chiliPng = File.ReadAllBytes("images/v2_10.png");
-            var hotpotScore = int.Parse(fields.ContainsKey("HotPot") ? fields["HotPot"] : "3");
-            var chiliIndent = hotpotIndent + imageDim;
-            for (int i = 0; i < hotpotScore; i++)
-            {
-                var chiliPlacement = new PdfRectangle(printBottom.Translate(chiliIndent, scoreY), new PdfPoint(chiliIndent+scoreDim, printBottom.Y+scoreY+scoreDim));
-                page.AddPng(chiliPng, chiliPlacement);
-                chiliIndent += scoreDim + 3;
-            }
-            
-            var bobaIndent = printWidth / 2 + 20;
-            var bobaPlacement = new PdfRectangle(printBottom.Translate(bobaIndent, imageY), new PdfPoint(bobaIndent+imageDim, printBottom.Y+imageY+imageDim));
-            page.AddPng(File.ReadAllBytes("images/v2_14.png"), bobaPlacement);
-
-            var icePng = File.ReadAllBytes("images/v2_16.png");
-            var bobaScore = int.Parse(fields.ContainsKey("Boba") ? fields["Boba"] : "3");
-            var iceIndent = bobaIndent + imageDim;
-            for (int i = 0; i < bobaScore; i++)
-            {
-                var icePlacement = new PdfRectangle(printBottom.Translate(iceIndent, scoreY), new PdfPoint(iceIndent+scoreDim, printBottom.Y+scoreY+scoreDim));
-                page.AddPng(icePng, icePlacement);
-                iceIndent += scoreDim + 3;
-            }
+            // Draw name with text wrapping (black text)
+            page.SetTextAndFillColor(0, 0, 0);
+            var nameLines = WrapText(page, name, NameFontSize, futuraFont, nameAreaWidth);
+            var totalNameHeight = RenderWrappedText(page, nameLines, NameFontSize, futuraFont, nameAreaLeft, nameAreaWidth, contentTop, contentBottom);
 
             var fileBytes = builder.Build();
 
@@ -130,6 +126,70 @@ namespace Halfempty.Nametag
             page.SetTextAndFillColor(100, 126, 221);
             page.DrawRectangle(printBottom, (decimal)printWidth, (decimal)printHeight, 1M, true);
         }
+
+        private static List<string> WrapText(PdfPageBuilder page, string text, int fontSize, PdfDocumentBuilder.AddedFont font, double maxWidth)
+        {
+            var words = text.Split(' ');
+            var lines = new List<string>();
+            var currentLine = "";
+
+            foreach (var word in words)
+            {
+                var testLine = currentLine.Length == 0 ? word : currentLine + " " + word;
+                var measured = page.MeasureText(testLine, fontSize, PdfPoint.Origin, font);
+                var width = measured.Any() ? measured.Max(letter => letter.Location.X) : 0;
+
+                if (width > maxWidth && currentLine.Length > 0)
+                {
+                    lines.Add(currentLine);
+                    currentLine = word;
+                }
+                else
+                {
+                    currentLine = testLine;
+                }
+            }
+            if (currentLine.Length > 0) lines.Add(currentLine);
+            return lines;
+        }
+
+        private static double RenderWrappedText(PdfPageBuilder page, List<string> lines, int fontSize, PdfDocumentBuilder.AddedFont font, double areaLeft, double areaWidth, double contentTop, double contentBottom)
+        {
+            // Calculate total height of all lines
+            double totalHeight = 0;
+            var lineHeights = new List<double>();
+            foreach (var line in lines)
+            {
+                var measured = page.MeasureText(line, fontSize, PdfPoint.Origin, font);
+                var top = measured.Any() ? measured.Max(x => x.GlyphRectangle.Top) : fontSize;
+                var bottom = measured.Any() ? measured.Min(x => x.GlyphRectangle.Bottom) : 0;
+                var lineHeight = top - bottom;
+                lineHeights.Add(lineHeight);
+                totalHeight += lineHeight;
+            }
+            totalHeight += (lines.Count - 1) * LineSpacing;
+
+            // Center vertically in content area
+            var contentHeight = contentTop - contentBottom;
+            var startY = contentTop - (contentHeight - totalHeight) / 2;
+
+            // Render each line centered horizontally in name area
+            var currentY = startY;
+            for (int i = 0; i < lines.Count; i++)
+            {
+                var line = lines[i];
+                var measured = page.MeasureText(line, fontSize, PdfPoint.Origin, font);
+                var lineWidth = measured.Any() ? measured.Max(letter => letter.Location.X) : 0;
+                var lineX = areaLeft + (areaWidth - lineWidth) / 2;
+                
+                currentY -= lineHeights[i];
+                page.AddText(line, fontSize, new PdfPoint(lineX, currentY), font);
+                Logger.Info($"Rendered line '{line}' at ({lineX}, {currentY})");
+                currentY -= LineSpacing;
+            }
+
+            return totalHeight;
+        }
     }
  
     class Program
@@ -143,26 +203,34 @@ namespace Halfempty.Nametag
             [Option('b', "borderless", Required = false, HelpText = "Print an ideal borderless layout, only works with inkjet printers")]
             public bool Borderless { get; set; } = false;
 
-            [Option(shortName:'t', longName:"templateData", Required = true, HelpText = "Template fields pairs (FullName, Team, TagLine), e.g. Team=Account Identity")]
-            public IEnumerable<string> TemplateFields { get; set; }
+            [Option('n', "name", Required = true, HelpText = "The person's full name")]
+            public string Name { get; set; } = "";
+
+            [Option('t', "team", Required = true, HelpText = "Team name string")]
+            public string Team { get; set; } = "";
+
+            [Option('i', "image", Required = true, HelpText = "Path to personalized PNG image")]
+            public string Image { get; set; } = "";
+
+            [Option('q', "quote", Required = true, HelpText = "Funny quote for the bottom")]
+            public string Quote { get; set; } = "";
             
             [Option('o', "output", Required = false, HelpText = "File to save output to")]
-            public string? Output {get; set;}
+            public string? Output { get; set; }
         }
 
         static void Main(string[] args)
         {
             var result = Parser.Default.ParseArguments<GenerateOptions>(args)
-                .WithParsed<GenerateOptions>( o =>
+                .WithParsed<GenerateOptions>(o =>
                 {
                     var location = Path.Combine(Environment.CurrentDirectory, o.Output ?? "result.pdf");
-                    var fieldDictionary = o.TemplateFields.Select(t => t.Split('=')).ToDictionary(t => t[0], t => t[1]);
 
                     Logger.Verbose = o.Verbose;
                     var output = File.Create(location);
                     
                     var generator = new FigmaTemplate();
-                    generator.Generate(fieldDictionary, o.Borderless, output);
+                    generator.Generate(o.Name, o.Team, o.Image, o.Quote, o.Borderless, output);
                 });
         }
     }
