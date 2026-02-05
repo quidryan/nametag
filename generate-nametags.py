@@ -87,7 +87,7 @@ def download_avatar(user_id: int, username: str) -> Path | None:
         output_path.write_bytes(image_data)
         return output_path
         
-    except (urllib.error.URLError, json.JSONDecodeError) as e:
+    except (urllib.error.URLError, json.JSONDecodeError, OSError) as e:
         print(f"  [ERROR] Failed to download avatar: {e}")
         return None
 
