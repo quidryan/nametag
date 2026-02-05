@@ -156,10 +156,10 @@ namespace Halfempty.Nametag
                 .WithParsed<GenerateOptions>( o =>
                 {
                     var location = Path.Combine(Environment.CurrentDirectory, o.Output ?? "result.pdf");
-                    var output = File.Create(location);
                     var fieldDictionary = o.TemplateFields.Select(t => t.Split('=')).ToDictionary(t => t[0], t => t[1]);
 
                     Logger.Verbose = o.Verbose;
+                    var output = File.Create(location);
                     
                     var generator = new FigmaTemplate();
                     generator.Generate(fieldDictionary, o.Borderless, output);
